@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Encryption</title>
+    <link rel="stylesheet" href="sub_style2.1.css">
+</head>
+<body>
+    <div class="banner">
+        <div class="navbar">
+            <img src="logo.png" class="logo">
+        </div>
+        <div class="content">
+            <h1>Upload Your File</h1>
+            <label for="file-input" class="upload-button">
+                <span></span>Upload File
+                <input type="file" id="file-input" accept=".pdf" required>
+            </label>
+            <button id="encrypt-button" onclick="encryptPDF()">Encrypt</button>
+            <p id="result"></p>
+            <p id="key-display" style="display: none">Encryption Key: <span id="key-value"></span></p>
+            <button id="download-button" onclick="downloadEncryptedPDF()" style="display: none; margin-left: 10px;">Download Encrypted PDF</button>
+        </div>
+    </div>
+    
+    <script>
+        let encryptionKey; // Variable to store the encryption key
+        let encryptedArray; // Variable to store encrypted data
+
+        async function encryptPDF() {
+            const fileInput = document.getElementById('file-input');
+            const resultElement = document.getElementById('result');
+            const keyDisplay = document.getElementById('key-display');
+            const keyValue = document.getElementById('key-value');
+            const downloadButton = document.getElementById('download-button');
+
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+
+                reader.onload = async (e) => {
+                    const fileContent = e.target.result;
+
+                    // Generate a random encryption key
+                    encryptionKey = new Uint8Array(16); // 128 bits (16 bytes)
+                    crypto.getRandomValues(encryptionKey);
+
+                    // Convert the key to a hexadecimal string for display
+                    const keyString = Array.from(encryptionKey)
+                        .map(byte => byte.toString(16).padStart(2, '0'))
+                        .join('');
+
+                    // Import the key as a CryptoKey
+                    const importedKey = await crypto.subtle.importKey(
+                        'raw', // Key format
+                        encryptionKey,
+                        'AES-GCM',
+                        true, // Extractable
+                        ['encrypt']
+                    );
+
+                    // Encrypt the PDF file using the Web Crypto API
+                    const encryptedData = await crypto.subtle.encrypt(
+                        { name: 'AES-GCM', iv: encryptionKey },
+                        importedKey, // Use the imported key
+                        new Uint8Array(fileContent)
+                    );
+
+                    encryptedArray = new Uint8Array(encryptedData); // Store encrypted data
+
+                    resultElement.textContent = 'PDF Encrypted';
+                    keyDisplay.style.display = 'block';
+                    keyValue.textContent = keyString;
+                    downloadButton.style.display = 'block';
+                };
+
+                reader.readAsArrayBuffer(file);
+            } else {
+                resultElement.textContent = 'Please select a PDF file.';
+                keyDisplay.style.display = 'none';
+                downloadButton.style.display = 'none';
+            }
+        }
+        
+        function downloadEncryptedPDF() {
+            if (encryptionKey) {
+                // Replace 'encrypted_file.enc' with your desired file name
+                const fileName = 'encrypted_file.enc';
+                
+                // Create a Blob with the encrypted data
+                const encryptedBlob = new Blob([encryptedArray], { type: 'application/octet-stream' });
+                
+                // Create a link and trigger the download
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(encryptedBlob);
+                a.download = fileName;
+                a.click();
+            }
+        }
+    </script>
+</body>
+</html>

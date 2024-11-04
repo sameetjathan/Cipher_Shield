@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Encryption</title>
+    <link rel="stylesheet" href="sub_style2.1.css">
+</head>
+<body>
+    <div class="banner">
+        <div class="navbar">
+            <img src="logo.png" class="logo">
+        </div>
+        <div class="content">
+            <h1>Upload Your Image</h1>
+            <label for="image-input" class="upload-button">
+                <span></span>Upload Image
+                <input type="file" id="image-input" accept=".jpg, .jpeg, .png, .gif" required>
+            </label>
+            <button id="encrypt-button">Encrypt</button>
+            <p id="result"></p>
+            <p id="key-display" style="display: none">Encryption Key: <span id="key-value"></span></p>
+            <button id="download-button" style="display: none; margin-left: 10px;">Download Encrypted Image</button>
+        </div>
+    </div>
+
+    <script>
+        let encryptionKey; // Variable to store the encryption key
+        let encryptedArray; // Variable to store encrypted data
+
+        document.getElementById('encrypt-button').addEventListener('click', encryptImage);
+
+        async function encryptImage() {
+            const imageInput = document.getElementById('image-input');
+            const resultElement = document.getElementById('result');
+            const keyDisplay = document.getElementById('key-display');
+            const keyValue = document.getElementById('key-value');
+            const downloadButton = document.getElementById('download-button');
+
+            if (imageInput.files.length > 0) {
+                const imageFile = imageInput.files[0];
+                const reader = new FileReader();
+
+                reader.onload = async (e) => {
+                    const imageContent = e.target.result;
+
+                    // Generate a random encryption key
+                    encryptionKey = new Uint8Array(16); // 128 bits (16 bytes)
+                    crypto.getRandomValues(encryptionKey);
+
+                    // Convert the key to a hexadecimal string for display
+                    const keyString = Array.from(encryptionKey)
+                        .map(byte => byte.toString(16).padStart(2, '0'))
+                        .join('');
+
+                    // Import the key as a CryptoKey
+                    const importedKey = await crypto.subtle.importKey(
+                        'raw', // Key format
+                        encryptionKey,
+                        'AES-GCM',
+                        true, // Extractable
+                        ['encrypt']
+                    );
+
+                    // Encrypt the image using the Web Crypto API
+                    const encryptedData = await crypto.subtle.encrypt(
+                        { name: 'AES-GCM', iv: encryptionKey },
+                        importedKey, // Use the imported key
+                        new Uint8Array(imageContent)
+                    );
+
+                    encryptedArray = new Uint8Array(encryptedData); // Store encrypted data
+
+                    resultElement.textContent = 'Image Encrypted';
+                    keyDisplay.style.display = 'block';
+                    keyValue.textContent = keyString;
+                    downloadButton.style.display = 'block';
+                };
+
+                reader.readAsArrayBuffer(imageFile);
+            } else {
+                resultElement.textContent = 'Please select an image (jpg, jpeg, png, gif file).';
+                keyDisplay.style.display = 'none';
+                downloadButton.style.display = 'none';
+            }
+        }
+
+        document.getElementById('download-button').addEventListener('click', downloadEncryptedImage);
+
+        function downloadEncryptedImage() {
+            if (encryptionKey) {
+                // Replace 'encrypted_image.enc' with your desired file name
+                const fileName = 'encrypted_image.enc';
+
+                // Create a Blob with the encrypted data
+                const encryptedBlob = new Blob([encryptedArray], { type: 'application/octet-stream' });
+
+                // Create a link and trigger the download
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(encryptedBlob);
+                a.download = fileName;
+                a.click();
+            }
+        }
+    </script>
+</body>
+</html>

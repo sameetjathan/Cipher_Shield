@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Decryption</title>
+    <link rel="stylesheet" href="sub_style2.1.css">
+</head>
+<body>
+    <div class="banner">
+      <div class="navbar">
+        <img src="logo.png" class="logo">
+    </div>
+    <div class="content">
+    <h1>Upload Your File</h1>
+    <label for="file-input" class="upload-button">
+      <span></span>Upload File
+      <input type="file" id="file-input" accept=".enc" required>
+    </label>
+    <button onclick="decryptFile()">Decrypt</button>
+    <p id="result"></p>
+    <p id="key-display" style="display: none">Encryption Key: <span id="key-value"></span></p>
+    <a id="download-link" style="display: none" download="decrypted_file.txt">Download Decrypted File</a>
+   </div>
+
+    <script>
+        let decryptionKey; // Variable to store the decryption key
+
+        async function decryptFile() {
+            const fileInput = document.getElementById('file-input');
+            const resultElement = document.getElementById('result');
+            const keyDisplay = document.getElementById('key-display');
+            const keyValue = document.getElementById('key-value');
+            const downloadLink = document.getElementById('download-link');
+
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+
+                reader.onload = async (e) => {
+                    const fileContent = e.target.result;
+
+                    const key = prompt('Enter the encryption key (32 hexadecimal characters):');
+                    if (!key || key.length !== 32) {
+                        return;
+                    }
+
+                    try {
+                        // Convert the key from a hexadecimal string to a Uint8Array
+                        const keyArray = new Uint8Array(16);
+                        for (let i = 0; i < 16; i++) {
+                            keyArray[i] = parseInt(key.substr(i * 2, 2), 16);
+                        }
+
+                        // Import the key as a CryptoKey
+                        const importedKey = await crypto.subtle.importKey(
+                            'raw', // Key format
+                            keyArray,
+                            'AES-GCM',
+                            true, // Extractable
+                            ['decrypt']
+                        );
+
+                        // Decrypt the file using the Web Crypto API
+                        const decryptedData = await crypto.subtle.decrypt(
+                            { name: 'AES-GCM', iv: keyArray },
+                            importedKey, // Use the imported key
+                            new Uint8Array(fileContent)
+                        );
+
+                        const decryptedText = new TextDecoder().decode(decryptedData);
+
+                        // Decode the decrypted base64 data
+                        const decodedData = atob(decryptedText);
+
+                        resultElement.textContent = 'File Decrypted';
+                        keyDisplay.style.display = 'none';
+                        keyValue.textContent = ''; // Clear the displayed key
+                        const decryptedBlob = new Blob([decodedData], { type: 'text/plain' });
+                        downloadLink.href = URL.createObjectURL(decryptedBlob);
+                        downloadLink.style.display = 'block';
+                    } catch (error) {
+                        resultElement.textContent = 'Decryption failed. Please check the key.';
+                        keyDisplay.style.display = 'none';
+                        keyValue.textContent = ''; // Clear the displayed key
+                        downloadLink.style.display = 'none';
+                    }
+                };
+
+                reader.readAsArrayBuffer(file);
+            } else {
+                resultElement.textContent = 'Please select a file.';
+                keyDisplay.style.display = 'none';
+                keyValue.textContent = ''; // Clear the displayed key
+                downloadLink.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

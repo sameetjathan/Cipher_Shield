@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Decryption</title>
+    <link rel="stylesheet" href="sub_style2.1.css">
+</head>
+<body>
+    <div class="banner">
+        <div class="navbar">
+            <img src="logo.png" class="logo">
+        </div>
+        <div class="content">
+            <h1>Upload Your Encrypted Image</h1>
+            <label for="image-input" class="upload-button">
+                <span></span>Upload Image
+                <input type="file" id="image-input" accept=".enc" required>
+            </label>
+    
+            <button onclick="decryptImage()">Decrypt Image</button>
+            <p id="result"></p>
+            <p id="key-display" style="display: none">Decryption Key: <span id="key-value"></span></p>
+            <a id="download-link" style="display: none" download="decrypted_image.png">Download Decrypted Image</a>
+        </div>
+    </div>
+
+    <script>
+        let decryptionKey; // Variable to store the decryption key
+
+        async function decryptImage() {
+            const imageInput = document.getElementById('image-input');
+            const resultElement = document.getElementById('result');
+            const keyDisplay = document.getElementById('key-display');
+            const keyValue = document.getElementById('key-value');
+            const downloadLink = document.getElementById('download-link');
+
+            if (imageInput.files.length > 0) {
+                const imageFile = imageInput.files[0];
+                const reader = new FileReader();
+
+                reader.onload = async (e) => {
+                    const imageContent = e.target.result;
+
+                    const key = prompt('Enter the decryption key (32 hexadecimal characters):');
+                    if (!key || key.length !== 32) {
+                        return;
+                    }
+
+                    try {
+                        // Convert the key from a hexadecimal string to a Uint8Array
+                        const keyArray = new Uint8Array(16);
+                        for (let i = 0; i < 16; i++) {
+                            keyArray[i] = parseInt(key.substr(i * 2, 2), 16);
+                        }
+
+                        // Import the key as a CryptoKey
+                        const importedKey = await crypto.subtle.importKey(
+                            'raw', // Key format
+                            keyArray,
+                            'AES-GCM',
+                            true, // Extractable
+                            ['decrypt']
+                        );
+
+                        // Decrypt the image using the Web Crypto API
+                        const decryptedData = await crypto.subtle.decrypt(
+                            { name: 'AES-GCM', iv: keyArray },
+                            importedKey, // Use the imported key
+                            new Uint8Array(imageContent)
+                        );
+
+                        // Create a Blob for the decrypted image (assuming it's a PNG)
+                        const decryptedBlob = new Blob([decryptedData], { type: 'image/png' });
+
+                        resultElement.textContent = 'Image Decrypted';
+                        keyDisplay.style.display = 'none';
+                        keyValue.textContent = ''; // Clear the displayed key
+                        downloadLink.href = URL.createObjectURL(decryptedBlob);
+                        downloadLink.style.display = 'block';
+                    } catch (error) {
+                        resultElement.textContent = 'Decryption failed. Please check the key.';
+                        keyDisplay.style.display = 'none';
+                        keyValue.textContent = ''; // Clear the displayed key
+                        downloadLink.style.display = 'none';
+                    }
+                };
+
+                reader.readAsArrayBuffer(imageFile);
+            } else {
+                resultElement.textContent = 'Please select an encrypted image (e.g., PNG) file.';
+                keyDisplay.style.display = 'none';
+                keyValue.textContent = ''; // Clear the displayed key
+                downloadLink.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

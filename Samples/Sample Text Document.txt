@@ -1,0 +1,13 @@
+In the digital age, where sensitive information is constantly at risk
+from cyber threats, data security has become an absolute necessity. As we
+rely more and more on digital storage and transmission of data, it is
+imperative to safeguard our information from unauthorized access. Cipher
+Shield is a comprehensive solution that addresses this critical need by
+providing a robust and user-friendly system for file encryption and
+decryption.
+In an era marked by the rapid exchange of data over the internet, the
+risk of data breaches and unauthorized access is ever-present. Hackers,
+malware, and even the inadvertent loss or theft of devices pose substantial
+threats to the confidentiality and integrity of our data. As such, Cipher
+Shield emerges as a powerful tool for both individuals and organizations to
+secure their digital assets.
